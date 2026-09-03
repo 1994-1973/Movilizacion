@@ -1,3 +1,4 @@
+HTML
 <!DOCTYPE html>
 <html lang="es" oncontextmenu="return false;">
 <head>
@@ -193,7 +194,7 @@
     <div class="botones-group">
         <button class="primary btn-ocultar-movil" onclick="copiarTablaNotepad()">📋 Copiar a Excel</button>
         <button onclick="alternarDesplegableVehiculos()" style="background:#0284c7; color:#fff; font-weight:bold;">🚗 Datos de Vehículos</button>
-        <button class="historico btn-ocultar-movil" onclick="guardarRespaldoSemanal()">💾 Archivar Semana</button>
+        <button class="historico btn-ocultar-movil" onclick="verificarAdminYEjecutar('respaldo')">💾 Archivar Semana</button>
         <button class="historico btn-ocultar-movil" onclick="abrirModalHistorico()" style="background:#5b21b6;">📂 Historial</button>
         <button class="modo-lectura btn-ocultar-movil" id="btn-estado-modo" onclick="alternarModoLectura()">👁️ Modo Activo</button>
         <button class="whatsapp-btn btn-ocultar-movil" onclick="copiarMinutaAutomatica()" style="background:#16a34a; font-weight:bold;">💬 Copiar Minuta</button>
@@ -268,7 +269,7 @@
             <label style="font-size: 10px; font-weight: bold;">Fecha de Inicio: <input type="date" id="input-fecha-inicio" style="border: 1px solid #cbd5e1; padding: 4px; border-radius: 3px; width: 100%;"></label>
             <label style="font-size: 10px; font-weight: bold;">Fecha de Término: <input type="date" id="input-fecha-fin" style="border: 1px solid #cbd5e1; padding: 4px; border-radius: 3px; width: 100%;"></label>
         </div>
-        <div style="margin-top: 15px; text-align: right;"><button class="primary" onclick="guardarAusenciaCalendario()">Aplicar y Reemplazar</button></div>
+        <div style="margin-top: 15px; text-align: right;"><button class="primary" onclick="guardarAusenciaConClave()">Aplicar y Reemplazar</button></div>
     </div>
 </div>
 
@@ -283,7 +284,7 @@
             <label><b>🟢 Disponible (Auto/Manual):</b> <input type="text" id="input-disponible" placeholder="Ej: 🟢 DISPONIBLE (11:30 a 14:00)" style="border: 1px solid #cbd5e1; padding: 3px; width: 100%;"></label>
             <label><b>📎 Archivo o Fotografía Adjunta:</b> <input type="text" id="input-archivo" placeholder="Ej: Foto_Evidencia.jpg" style="border: 1px solid #cbd5e1; padding: 3px; width: 100%;"></label>
         </div>
-        <div style="margin-top: 12px; text-align: right;"><button class="primary" onclick="guardarDetalleCelda()">Guardar Cambios</button></div>
+        <div style="margin-top: 12px; text-align: right;"><button class="primary" onclick="guardarDetalleCeldaConClave()">Guardar Cambios</button></div>
     </div>
 </div>
 
@@ -331,6 +332,18 @@
     let diasEmergenciaRegistrados = JSON.parse(localStorage.getItem('nogales_emergencias_dias') || '[]');
     let diaAmpliadoMovilIndex = null;
     
+    const CLAVE_ADMIN = "nogales1891";
+
+    function verificarClaveAdmin() {
+        let clave = prompt("🔐 ACCESO ADMINISTRADOR RESTRINGIDO\nIngrese la contraseña de administración (nogales1891):");
+        if (clave === null) return false;
+        if (clave.trim() !== CLAVE_ADMIN) {
+            alert("❌ Contraseña incorrecta. Operación cancelada.");
+            return false;
+        }
+        return true;
+    }
+
     let ausenciasInicialesDefecto = {
         "Miguel Manzur": { tipo: "DIA ADMINISTRATIVO", tipoVisual: "DÍA ADMINISTRATIVO", inicio: "2026-08-31", fin: "2026-08-31" },
         "Claudio Suarez": { tipo: "DIA ADMINISTRATIVO", tipoVisual: "DÍA ADMINISTRATIVO", inicio: "2026-08-31", fin: "2026-08-31" },
@@ -675,12 +688,17 @@
                 opciones += `<option value="${v.ppu}" ${sel}>${v.ppu}</option>`;
             }
         });
-        return `<select onchange="guardarPpuCelda(this, '${keyPpu}')" ondblclick="mostrarDetallePpu(this.value)" style="background:#e0f2fe; font-weight:bold;">${opciones}</select>`;
+        return `<select onchange="guardarPpuCeldaConClave(this, '${keyPpu}')" ondblclick="mostrarDetallePpu(this.value)" style="background:#e0f2fe; font-weight:bold;">${opciones}</select>`;
     }
 
-    function guardarPpuCelda(selectEl, keyPpu) {
+    function guardarPpuCeldaConClave(selectEl, keyPpu) {
+        if (!verificarClaveAdmin()) {
+            construirTablaPrincipal(); // Revertir visualmente si cancela o falla
+            return;
+        }
         datosPpuPersonalizadas[keyPpu] = selectEl.value;
         localStorage.setItem('nogales_ppu', JSON.stringify(datosPpuPersonalizadas));
+        alert("✅ PPU actualizada correctamente.");
     }
 
     function mostrarDetallePpu(ppu) {
@@ -915,7 +933,6 @@
     }
 
     function abrirModalDetalle(el, key) {
-        if (modoSoloLectura || emergenciaActivaGlobal) return; 
         celdaActivaModal = el;
         celdaActivaModal.dataset.cellKey = key;
         let base = obtenerDatosJornadasBase(el.closest('tr').dataset.funcionario, 'personal', 0, "");
@@ -930,7 +947,8 @@
 
     function cerrarModalHorario() { document.getElementById("modalHorario").style.display = "none"; }
     
-    function guardarDetalleCelda() {
+    function guardarDetalleCeldaConClave() {
+        if (!verificarClaveAdmin()) return;
         if (celdaActivaModal) {
             let key = celdaActivaModal.dataset.cellKey;
             datosCeldasPersonalizadas[key] = {
@@ -942,6 +960,7 @@
             };
             localStorage.setItem('nogales_celdas', JSON.stringify(datosCeldasPersonalizadas));
             construirTablaPrincipal();
+            alert("✅ Cambios de celda guardados correctamente.");
         }
         cerrarModalHorario();
     }
@@ -994,7 +1013,7 @@
 
             let readonlyPpuAttr = esMovil ? "readonly style='font-weight:bold; width:65px; background:#f1f5f9;'" : "onchange=\"guardarDatosVehiculoDirecto('" + v.ppu + "', 'ppu', this.value)\" style='font-weight:bold; width:65px;'";
             let readonlyRestoAttr = esMovil ? "readonly style='background:#f1f5f9; text-align:left;'" : "";
-            let readonlyKmActAttr = "onchange=\"guardarControlVehiculo('" + v.ppu + "', 'kmAct', this.value)\" style='font-weight:bold; background:#fff; border:1.5px solid #2563eb;'";
+            let readonlyKmActAttr = "onchange=\"guardarControlVehiculoConClave('" + v.ppu + "', 'kmAct', this.value)\" style='font-weight:bold; background:#fff; border:1.5px solid #2563eb;'";
 
             html += `<tr>
                 <td style="font-weight:bold; background:#e0f2fe;"><input type="text" value="${v.ppu}" ${readonlyPpuAttr}></td>
@@ -1009,7 +1028,7 @@
 
             mesesAnio.forEach((m) => {
                 let valMes = vData.meses[m] !== undefined ? vData.meses[m] : "0";
-                let readonlyMesAttr = esMovil ? "readonly style='width:40px; text-align:center; background:#f1f5f9;'" : "onchange=\"guardarGastoMes('" + v.ppu + "', '" + m + "', this.value)\" style='width:40px; text-align:center;'";
+                let readonlyMesAttr = esMovil ? "readonly style='width:40px; text-align:center; background:#f1f5f9;'" : "onchange=\"guardarGastoMesConClave('" + v.ppu + "', '" + m + "', this.value)\" style='width:40px; text-align:center;'";
                 html += `<td><input type="text" value="${valMes}" ${readonlyMesAttr}></td>`;
             });
 
@@ -1025,7 +1044,11 @@
         document.getElementById("contenido-panel-vehiculos").innerHTML = html;
     }
 
-    function guardarControlVehiculo(ppu, campo, valor) {
+    function guardarControlVehiculoConClave(ppu, campo, valor) {
+        if (!verificarClaveAdmin()) {
+            renderizarPanelVehiculos();
+            return;
+        }
         let keyV = `veh_${ppu}_${anioActivoVehiculos}`;
         if (!datosVehiculosControl[keyV]) {
             let vObj = vehiculosMunicipales.find(x => x.ppu === ppu);
@@ -1033,9 +1056,14 @@
         }
         datosVehiculosControl[keyV][campo] = valor;
         localStorage.setItem('nogales_vehiculos_control', JSON.stringify(datosVehiculosControl));
+        alert("✅ Kilometraje actualizado correctamente.");
     }
 
-    function guardarGastoMes(ppu, mes, valor) {
+    function guardarGastoMesConClave(ppu, mes, valor) {
+        if (!verificarClaveAdmin()) {
+            renderizarPanelVehiculos();
+            return;
+        }
         let keyV = `veh_${ppu}_${anioActivoVehiculos}`;
         if (!datosVehiculosControl[keyV]) {
             let vObj = vehiculosMunicipales.find(x => x.ppu === ppu);
@@ -1044,9 +1072,11 @@
         if (!datosVehiculosControl[keyV].meses) datosVehiculosControl[keyV].meses = {};
         datosVehiculosControl[keyV].meses[mes] = valor;
         localStorage.setItem('nogales_vehiculos_control', JSON.stringify(datosVehiculosControl));
+        alert("✅ Gasto mensual de combustible actualizado.");
     }
 
     function guardarDatosVehiculoDirecto(ppuOriginal, campo, valor) {
+        if (!verificarClaveAdmin()) return;
         let vObj = vehiculosMunicipales.find(x => x.ppu === ppuOriginal);
         if (vObj) {
             vObj[campo] = valor;
@@ -1070,31 +1100,46 @@
         document.getElementById("contenido-lista-historico").innerHTML = htmlList;
     }
 
+    function verificarAdminYEjecutar(accion) {
+        if (!verificarClaveAdmin()) return;
+        if (accion === 'respaldo') {
+            guardarRespaldoSemanal();
+        }
+    }
+
     function guardarRespaldoSemanal() {
         let fechas = obtenerFechasCalculadas();
         let registroHistorico = { anio: anioActivoRegistro, semana: semanaActiva, rango: `${fechas[0].textoCorto} al ${fechas[6].textoCorto}`, fechaGuardado: new Date().toLocaleDateString(), datos: JSON.parse(JSON.stringify(datosCeldasPersonalizadas)) };
         historialArchivoSemanas.push(registroHistorico);
         localStorage.setItem('nogales_archivo_historico', JSON.stringify(historialArchivoSemanas));
-        alert(`💾 Semana archivada en el historial del año ${anioActivoRegistro}.`);
+        alert(`💾 Semana archivada con éxito en el historial del año ${anioActivoRegistro}.`);
     }
 
     function cambiarSituacionFila(selectEl, nombre) {
-        if (emergenciaActivaGlobal) return; 
         let val = selectEl.value;
         if (val !== "Activo") {
+            if (!verificarClaveAdmin()) {
+                construirTablaPrincipal();
+                return;
+            }
             funcionarioSeleccionadoAusencia = nombre;
             selectAusenciaActivo = selectEl;
             document.getElementById("label-funcionario-ausencia").innerText = `Funcionario: ${nombre} (${val.toUpperCase()}) — Suplente automático asignado: ${mapaReemplazosDirectos[nombre] || 'Ninguno'}`;
             document.getElementById("modalCalendarioAusencia").style.display = "block";
         } else {
+            if (!verificarClaveAdmin()) {
+                construirTablaPrincipal();
+                return;
+            }
             delete registrosAusencias[nombre];
             localStorage.setItem('nogales_ausencias', JSON.stringify(registrosAusencias));
             construirTablaPrincipal();
+            alert("✅ Estado actualizado a Activo.");
         }
     }
 
-    function cerrarModalCalendario() { document.getElementById("modalCalendarioAusencia").style.display = "none"; }
-    function guardarAusenciaCalendario() {
+    function cerrarModalCalendario() { document.getElementById("modalCalendarioAusencia").style.display = "none"; construirTablaPrincipal(); }
+    function guardarAusenciaConClave() {
         let fInicio = document.getElementById("input-fecha-base").value;
         let fFin = document.getElementById("input-fecha-base").value;
         registrosAusencias[funcionarioSeleccionadoAusencia] = { 
@@ -1106,16 +1151,19 @@
         localStorage.setItem('nogales_ausencias', JSON.stringify(registrosAusencias));
         cerrarModalCalendario();
         construirTablaPrincipal();
+        alert("✅ Ausencia registrada correctamente.");
     }
 
     function activarOVerificarEmergencia() {
         if (!emergenciaActivaGlobal) {
+            if (!verificarClaveAdmin()) return;
             emergenciaActivaGlobal = true;
             document.getElementById("btn-sos-accion").style.background = "#059669";
             document.getElementById("btn-sos-accion").innerText = "🛑 Desactivar SOS";
             aplicarEstadoEmergenciaVisual();
             alert("🚨 ¡EMERGENCIA MUNICIPAL ACTIVADA! Todos los recursos se encuentran bloqueados y en alerta roja.");
         } else {
+            if (!verificarClaveAdmin()) return;
             emergenciaActivaGlobal = false;
             document.getElementById("btn-sos-accion").style.background = "#dc2626";
             document.getElementById("btn-sos-accion").innerText = "🚨 SOS";
